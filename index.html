@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trenton 3D Tour Map</title>
+  
+  <!-- CesiumJS Library -->
+  <script src="https://ajax.googleapis.com/ajax/libs/cesiumjs/1.105/Build/Cesium/Cesium.js"></script>
+  <link href="https://ajax.googleapis.com/ajax/libs/cesiumjs/1.105/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  <!-- Karla Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    html, body, #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+      font-family: 'Karla', sans-serif;
+    }
+
+    #sidePanel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(25, 25, 25, 0.9);
+      padding: 15px;
+      border-radius: 8px;
+      z-index: 10;
+      color: white;
+      font-family: 'Karla', sans-serif;
+      width: 250px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
+
+    .layer-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 6px;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+
+    .layer-toggle:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    .layer-toggle input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .sub-layers {
+      margin-left: 24px;
+      margin-top: 4px;
+      padding-left: 8px;
+      border-left: 2px solid rgba(79, 195, 247, 0.2);
+    }
+
+    .sub-toggle {
+      padding: 6px 6px;
+      font-size: 13px;
+    }
+
+    .section-title {
+      padding: 10px 0;
+      font-size: 11px;
+      color: #4fc3f7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    /* Color Swatch for Legend */
+    .color-swatch {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      flex-shrink: 0;
+    }
+
+    /* Popup Sidebar */
+    #popup {
+      position: fixed;
+      right: 0;
+      top: 0;
+      height: 100%;
+      width: 400px;
+      background: rgba(15, 15, 20, 0.98);
+      color: white;
+      padding: 0;
+      font-family: 'Karla', sans-serif;
+      font-size: 13px;
+      display: none;
+      z-index: 20;
+      pointer-events: auto;
+      box-shadow: -4px 0 32px rgba(0, 0, 0, 0.7);
+      border-left: 1px solid rgba(79, 195, 247, 0.3);
+      overflow-y: auto;
+      overflow-x: hidden;
+      animation: slideInRight 0.3s ease-out;
+    }
+
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    #popup .popup-header {
+      background: linear-gradient(135deg, rgba(179, 179, 179, 0.638) 0%, rgba(111, 111, 111, 0.2) 100%);
+      padding: 20px 20px;
+      border-bottom: 1px solid rgba(79, 195, 247, 0.2);
+      position: sticky;
+      top: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 15px;
+    }
+
+    #popup .popup-title {
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 4px;
+      flex: 1;
+    }
+
+    #popup .popup-type {
+      font-size: 11px;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #popup .close-btn {
+      background: none;
+      border: none;
+      color: #4fc3f7;
+      font-size: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: color 0.2s;
+    }
+
+    #popup .close-btn:hover {
+      color: #81d4fa;
+    }
+
+    #popup .popup-body {
+      padding: 20px;
+    }
+
+    #popup .popup-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+    }
+
+    #popup .popup-row:last-child {
+      border-bottom: none;
+    }
+
+    #popup .popup-label {
+      color: #999;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+
+    #popup .popup-value {
+      color: #e0e0e0;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    /* Content Box Styling */
+    #contentBox {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 450px;
+      max-height: 80vh;
+      background: rgba(15, 15, 20, 0.98);
+      color: white;
+      border: 1px solid rgba(79, 195, 247, 0.3);
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+      display: none;
+      z-index: 15;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideInUp 0.3s ease-out;
+    }
+
+    @keyframes slideInUp {
+      from {
+        transform: translateY(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    #contentBox.active {
+      display: flex;
+    }
+
+    #contentBox .content-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #4fc3f7;
+    }
+
+    #contentBox .content-close-btn {
+      background: none;
+      border: none;
+      color: #4fc3f7;
+      font-size: 24px;
+      cursor: pointer;
+      transition: color 0.2s;
+      padding: 0;
+      line-height: 1;
+    }
+
+    #contentBox .content-close-btn:hover {
+      color: #81d4fa;
+    }
+
+    #contentBox.minimized {
+      width: auto;
+      max-height: none;
+    }
+
+    #contentBox.minimized .content-body {
+      display: none;
+    }
+
+    #contentBox.minimized .content-expand-btn {
+      display: inline-block;
+    }
+
+    #contentBox .content-expand-btn {
+      background: none;
+      border: none;
+      color: #4fc3f7;
+      font-size: 14px;
+      cursor: pointer;
+      transition: color 0.2s;
+      padding: 0;
+      line-height: 1;
+      margin-left: auto;
+      display: none;
+    }
+
+    #contentBox .content-expand-btn:hover {
+      color: #81d4fa;
+    }
+
+    #contentBox .content-header {
+      background: linear-gradient(135deg, rgba(79, 195, 247, 0.2) 0%, rgba(79, 195, 247, 0.1) 100%);
+      padding: 15px 20px;
+      border-bottom: 1px solid rgba(79, 195, 247, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      gap: 10px;
+    }
+
+    #contentBox .content-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    #contentBox .content-text {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #e0e0e0;
+      word-wrap: break-word;
+    }
+
+    #contentBox .content-video-container {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 4px;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+    }
+
+    #contentBox .content-video-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="cesiumContainer"></div>
+  
+  <div id="popup"></div>
+
+  <div id="contentBox">
+    <div class="content-header">
+      <div class="content-title">Content</div>
+      <div style="display: flex; gap: 8px;">
+        <button class="content-expand-btn" onclick="expandContentBox();">△</button>
+        <button class="content-close-btn" onclick="minimizeContentBox();">—</button>
+      </div>
+    </div>
+    <div class="content-body">
+      <div class="content-text" id="contentText"></div>
+      <div class="content-video-container" id="contentVideoContainer" style="display: none;"></div>
+    </div>
+  </div>
+
+  <div id="sidePanel">
+    <div class="section-title">📍 Layers</div>
+    <label class="layer-toggle">
+      <input type="checkbox" id="toggleHotspots" checked>
+      🔥 Hotspots
+    </label>
+    <div class="sub-layers" id="hotspotsSubLayers">
+      <label class="layer-toggle sub-toggle">
+        <input type="checkbox" id="toggle360" checked>
+        📸 360° Image
+      </label>
+      <label class="layer-toggle sub-toggle">
+        <input type="checkbox" id="toggleGuidedTour" checked>
+        🚶 Guided Tour
+      </label>
+    </div>
+    <label class="layer-toggle">
+      <input type="checkbox" id="toggleRedlining">
+      🗺️ HOLC Redlining
+    </label>
+    <div class="sub-layers" id="redliningSubLayers">
+      <label class="layer-toggle sub-toggle">
+        <input type="checkbox" id="toggleGradeA" checked>
+        <span class="color-swatch" style="background-color: #76a865;"></span>
+        Grade A - Best
+      </label>
+      <label class="layer-toggle sub-toggle">
+        <input type="checkbox" id="toggleGradeB" checked>
+        <span class="color-swatch" style="background-color: #7cb5bd;"></span>
+        Grade B - Desirable
+      </label>
+      <label class="layer-toggle sub-toggle">
+        <input type="checkbox" id="toggleGradeC" checked>
+        <span class="color-swatch" style="background-color: #ffff00;"></span>
+        Grade C - Declining
+      </label>
+      <label class="layer-toggle sub-toggle">
+        <input type="checkbox" id="toggleGradeD" checked>
+        <span class="color-swatch" style="background-color: #ff0000;"></span>
+        Grade D - Hazardous
+      </label>
+      <label class="layer-toggle sub-toggle">
+        <input type="checkbox" id="toggleOther">
+        <span class="color-swatch" style="background-color: #888888;"></span>
+        Other (Commercial/Industrial)
+      </label>
+    </div>
+    <label class="layer-toggle">
+      <input type="checkbox" id="toggleNeighborhoods">
+      🏘️ Neighborhoods
+    </label>
+    <label class="layer-toggle">
+      <input type="checkbox" id="toggleGoogle3D" checked>
+      🏢 Google 3D Tiles
+    </label>
+  </div>
+
+  <script>
+    /**
+     * Trenton 3D Tour Map
+     * =====================
+     * A CesiumJS application displaying Google Photorealistic 3D tiles
+     * over Trenton, NJ with an interactive layer toggle UI.
+     *
+     * Dependencies:
+     * - CesiumJS 1.105+
+     * - Cesium Ion token
+     * - Google 3D Tiles API token
+     */
+
+    // Cesium Ion Access Token for terrain and resources
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0YzEzOTJiOS04ZDk5LTQ2YTgtYTVlYS1iOWFkMjA5NWYzMTUiLCJpZCI6Mzg4NDA0LCJpYXQiOjE3NzA1NTA4MjF9.uWOUlsxIdFQiF2UXiYsdePVjY3pwZu37Pf8yR3p2QAg';
+
+    let viewer;
+    let tileset;
+    let hotspotsDataSource;
+    let redliningDataSource;
+    let neighborhoodsDataSource;
+    let neighborhoodsOutlineDataSource;
+    let selectedEntity = null; // Track currently selected entity for alpha fading
+
+    /**
+     * Helper: Extract property value from Cesium entity property
+     */
+    function getPropertyValue(property) {
+      if (!property) return null;
+      return typeof property.getValue === 'function' ? property.getValue() : property;
+    }
+
+    /**
+     * Helper: Create grade toggle handler
+     */
+    function createGradeToggleHandler(grade) {
+      return (e) => {
+        if (!redliningDataSource) return;
+        const entityArray = Array.from(redliningDataSource.entities.values);
+        entityArray.forEach(entity => {
+          if (entity.properties && entity.properties.grade) {
+            const gradeValue = getPropertyValue(entity.properties.grade);
+            const matches = grade === 'Other' 
+              ? !['A', 'B', 'C', 'D'].includes(gradeValue)
+              : gradeValue === grade;
+            if (matches) {
+              entity.show = e.target.checked;
+            }
+          }
+        });
+      };
+    }
+
+    /**
+     * Initialize the Cesium viewer and load Google 3D tiles
+     */
+    Cesium.createWorldTerrainAsync()
+      .then(terrainProvider => {
+        // Create Cesium viewer with minimal UI
+        viewer = new Cesium.Viewer('cesiumContainer', {
+          baseLayerPicker: false,
+          timeline: false,
+          animation: false,
+          infoBox: false,
+          selectionIndicator: false,
+          terrainProvider: terrainProvider
+        });
+
+        // Set globe background to black
+        viewer.scene.globe.baseColor = Cesium.Color.BLACK;
+
+        // Load Google Photorealistic 3D Tiles
+        return Cesium.Cesium3DTileset.fromUrl(
+          'https://tile.googleapis.com/v1/3dtiles/root.json?key=AIzaSyBiAU9yNxKyMgc48aRzspTOksmm1Vgitx4'
+        );
+      })
+      .then(loadedTileset => {
+        // Add tileset to the scene
+        tileset = viewer.scene.primitives.add(loadedTileset);
+
+        // Load hotspots GeoJSON
+        return Cesium.GeoJsonDataSource.load('/tour_map/data/hotspots.geojson')
+          .catch(err => {
+            console.error('Failed to load GeoJSON:', err);
+            throw err;
+          });
+      })
+      .then(dataSource => {
+        if (!dataSource) {
+          throw new Error('GeoJSON dataSource is undefined');
+        }
+
+        // Add hotspots to viewer - this returns a Promise
+        return viewer.dataSources.add(dataSource);
+      })
+      .then(addedDataSource => {
+        // Now we have the actual data source
+        hotspotsDataSource = addedDataSource;
+        
+        // Get entities array and style them
+        try {
+          if (hotspotsDataSource && hotspotsDataSource.entities) {
+            const entityArray = Array.from(hotspotsDataSource.entities.values);
+
+            // Style hotspots based on type attribute with 3D billboards
+            entityArray.forEach((entity, index) => {
+              
+              // Get type value
+              let typeValue;
+              if (entity.properties && entity.properties.type) {
+                if (typeof entity.properties.type.getValue === 'function') {
+                  typeValue = entity.properties.type.getValue();
+                } else {
+                  typeValue = entity.properties.type;
+                }
+              }
+              
+              // Remove point if it exists
+              entity.point = undefined;
+              
+              // Create billboard based on type with individual scaling
+              let iconUrl;
+              let scale;
+              if (typeValue === '360° Image') {
+                iconUrl = '/tour_map/img/360-degree.svg';
+                scale = 0.4;
+              } else if (typeValue && typeValue.toLowerCase().includes('guided')) {
+                iconUrl = '/tour_map/img/tour-guide.svg';
+                scale = 0.1;
+              } else {
+              }
+              
+              if (iconUrl) {
+                entity.billboard = new Cesium.BillboardGraphics({
+                  image: iconUrl,
+                  scale: scale,
+                  verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                  heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                });
+              }
+            });
+          } else {
+            console.warn('hotspotsDataSource or entities is null/undefined');
+          }
+        } catch (err) {
+          console.error('Error styling entities:', err);
+        }
+
+        // Load and style redlining GeoJSON
+        return Cesium.GeoJsonDataSource.load('/tour_map/data/redlining.geojson')
+          .catch(err => {
+            throw err;
+          });
+      })
+      .then(dataSource => {
+        if (!dataSource) {
+          throw new Error('Redlining dataSource is undefined');
+        }
+
+        // Add redlining to viewer
+        return viewer.dataSources.add(dataSource);
+      })
+      .then(addedDataSource => {
+        // Style redlining polygons by grade
+        redliningDataSource = addedDataSource;
+        
+        try {
+          if (redliningDataSource && redliningDataSource.entities) {
+            const entityArray = Array.from(redliningDataSource.entities.values);
+            
+            entityArray.forEach(entity => {
+              if (entity.polygon && entity.properties) {
+                let gradeValue = null;
+                let fillColor = null;
+                
+                // Get grade property
+                if (entity.properties.grade && typeof entity.properties.grade.getValue === 'function') {
+                  gradeValue = entity.properties.grade.getValue();
+                }
+                
+                // Get fill color from properties
+                if (entity.properties.fill && typeof entity.properties.fill.getValue === 'function') {
+                  fillColor = entity.properties.fill.getValue();
+                }
+                
+                // Define grade colors (fallback if fill property not available)
+                const gradeColors = {
+                  'A': '#76a865',
+                  'B': '#7cb5bd',
+                  'C': '#ffff00',
+                  'D': '#ff0000'
+                };
+                
+                // Use fill color from data if available, otherwise use grade-based color
+                const polygonColor = fillColor || gradeColors[gradeValue] || '#888888';
+                
+                // Determine alpha based on grade (main grades A/B/C/D get 0.4, others get 0.1)
+                const alpha = (gradeValue && ['A', 'B', 'C', 'D'].includes(gradeValue)) ? 0.4 : 0.1;
+                
+                // Apply polygon styling with 3D extrusion
+                entity.polygon.material = Cesium.Color.fromCssColorString(polygonColor).withAlpha(alpha);
+                entity.polygon.outline = true;
+                entity.polygon.outlineColor = Cesium.Color.WHITE;
+                
+                // Set all polygons to same ground level elevation (0 altitude)
+                entity.polygon.height = 0;
+                
+                // Add 3D extrusion (25 meters height from base)
+                entity.polygon.extrudedHeight = 25; // meters
+                
+                // Hide "Other" category polygons by default (only show main grades A/B/C/D)
+                if (!['A', 'B', 'C', 'D'].includes(gradeValue)) {
+                  entity.show = false;
+                }
+              }
+            });
+          } else {
+            console.warn('redliningDataSource or entities is null/undefined');
+          }
+        } catch (err) {
+          console.error('Error styling redlining entities:', err);
+        }
+
+        // Check if redlining should be visible by default based on checkbox state
+        const toggleRedliningCheckbox = document.getElementById('toggleRedlining');
+        if (redliningDataSource && !toggleRedliningCheckbox.checked) {
+          redliningDataSource.show = false;
+        }
+
+        // Load neighborhoods GeoJSON (FIRST LAYER - with fill)
+        return Cesium.GeoJsonDataSource.load('/tour_map/data/neighborhoods.geojson', {
+          clampToGround: true
+        })
+          .catch(err => {
+            console.error('Failed to load neighborhoods GeoJSON:', err);
+            throw err;
+          });
+      })
+      .then(dataSource => {
+        if (!dataSource) {
+          throw new Error('Neighborhoods dataSource is undefined');
+        }
+
+        // Add first neighborhoods layer to viewer (with fill)
+        return viewer.dataSources.add(dataSource);
+      })
+      .then(addedDataSource => {
+        // Style neighborhoods polygons - FILL LAYER
+        neighborhoodsDataSource = addedDataSource;
+        
+        try {
+          if (neighborhoodsDataSource && neighborhoodsDataSource.entities) {
+            const entityArray = Array.from(neighborhoodsDataSource.entities.values);
+            
+            entityArray.forEach(entity => {
+              if (entity.polygon && entity.properties) {
+                // Style neighborhood with fill
+                entity.polygon.outline = true;
+                entity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(1.0);
+                entity.polygon.outlineWidth = 3;
+                entity.polygon.fill = true;
+                entity.polygon.material = Cesium.Color.fromCssColorString('#808080').withAlpha(0.0);
+                
+                // Drape over both terrain and 3D buildings
+                entity.polygon.classificationType = Cesium.ClassificationType.BOTH;
+              }
+            });
+          } else {
+            console.warn('neighborhoodsDataSource or entities is null/undefined');
+          }
+        } catch (err) {
+          console.error('Error styling neighborhood fill layer entities:', err);
+        }
+
+        // Store original colors for neighborhoods for later restoration
+        if (neighborhoodsDataSource && neighborhoodsDataSource.entities) {
+          const entityArray = Array.from(neighborhoodsDataSource.entities.values);
+          entityArray.forEach(entity => {
+            if (entity.polygon) {
+              entity.originalOutlineColor = Cesium.Color.WHITE.withAlpha(1.0);
+              entity.originalFillColor = Cesium.Color.fromCssColorString('#808080').withAlpha(0.0);
+            }
+          });
+        }
+
+        // Load neighborhoods GeoJSON AGAIN (SECOND LAYER - outline only)
+        return Cesium.GeoJsonDataSource.load('/tour_map/data/neighborhoods.geojson', {
+          clampToGround: true
+        })
+          .catch(err => {
+            console.error('Failed to load neighborhoods outline GeoJSON:', err);
+            throw err;
+          });
+      })
+      .then(dataSource => {
+        if (!dataSource) {
+          throw new Error('Neighborhoods outline dataSource is undefined');
+        }
+
+        // Add second neighborhoods layer to viewer (outline only)
+        return viewer.dataSources.add(dataSource);
+      })
+      .then(addedDataSource => {
+        // Style neighborhoods polygons - OUTLINE ONLY LAYER
+        neighborhoodsOutlineDataSource = addedDataSource;
+        
+        try {
+          if (neighborhoodsOutlineDataSource && neighborhoodsOutlineDataSource.entities) {
+            const entityArray = Array.from(neighborhoodsOutlineDataSource.entities.values);
+            
+            entityArray.forEach(entity => {
+              if (entity.polygon && entity.properties) {
+                // Style neighborhood - outline only, no fill
+                entity.polygon.fill = false;
+                entity.polygon.outline = true;
+                entity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(1.0);
+                entity.polygon.outlineWidth = 3;
+                
+                // Drape over both terrain and 3D buildings
+                entity.polygon.classificationType = Cesium.ClassificationType.BOTH;
+              }
+            });
+          } else {
+            console.warn('neighborhoodsOutlineDataSource or entities is null/undefined');
+          }
+        } catch (err) {
+          console.error('Error styling neighborhood outline layer entities:', err);
+        }
+
+        // Explicitly reorder data sources for proper rendering order (bottom to top)
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            if (redliningDataSource && neighborhoodsDataSource && neighborhoodsOutlineDataSource) {
+              // Remove all from collection and re-add in correct order
+              viewer.dataSources.remove(redliningDataSource, true);
+              viewer.dataSources.remove(neighborhoodsDataSource, true);
+              viewer.dataSources.remove(neighborhoodsOutlineDataSource, true);
+              
+              // Re-add in desired order (bottom to top rendering)
+              viewer.dataSources.add(redliningDataSource);
+              viewer.dataSources.add(neighborhoodsDataSource);
+              viewer.dataSources.add(neighborhoodsOutlineDataSource);
+            }
+            resolve();
+          }, 100);
+        });
+      })
+      .then(() => {
+        // Check if neighborhoods should be visible by default based on checkbox state
+        const toggleNeighborhoodsCheckbox = document.getElementById('toggleNeighborhoods');
+        if (neighborhoodsDataSource && !toggleNeighborhoodsCheckbox.checked) {
+          neighborhoodsDataSource.show = false;
+          if (neighborhoodsOutlineDataSource) {
+            neighborhoodsOutlineDataSource.show = false;
+          }
+        }
+
+        // Fly camera to Trenton, NJ with specified view
+        viewer.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(-74.8,  40.20, 1500),
+          orientation: {
+            heading: Cesium.Math.toRadians(50),
+            pitch: Cesium.Math.toRadians(-20)
+          },
+          duration: 2,
+          complete: () => {
+            // Show welcome content box after camera animation completes
+            showContentBox(
+              "Welcome to Trenton 3D Tour",
+              "Explore the rich history and urban landscape of Trenton, New Jersey through interactive 3D visualization. Click on hotspots, neighborhoods, and historical redlining data to learn more. Use the layer controls on the left to toggle different data visualizations.",
+              "https://youtu.be/t1iaarTOTKg"
+            );
+          }
+        });
+
+        // Setup click handler for popups
+        setupClickHandler();
+      })
+      .catch(error => {
+        console.error('Error initializing viewer:', error);
+      });
+
+    /**
+     * Setup click event handler for hotspots and redlining
+     */
+    function setupClickHandler() {
+      const popup = document.getElementById('popup');
+      const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+      // Helper function to get correct alpha based on grade
+      function getAlphaForGrade(gradeValue) {
+        return (gradeValue && ['A', 'B', 'C', 'D'].includes(gradeValue)) ? 0.4 : 0.1;
+      }
+
+      // Helper function to restore entity alpha and extrusion to normal
+      function restoreEntityAlpha(entity) {
+        if (!entity || !entity.polygon) return;
+        
+        // Restore redlining features
+        if (entity.properties && entity.properties.grade) {
+          let gradeValue = entity.properties.grade;
+          if (typeof gradeValue.getValue === 'function') {
+            gradeValue = gradeValue.getValue();
+          }
+          
+          let fillColor = null;
+          if (entity.properties.fill && typeof entity.properties.fill.getValue === 'function') {
+            fillColor = entity.properties.fill.getValue();
+          }
+          
+          const gradeColors = {
+            'A': '#76a865',
+            'B': '#7cb5bd',
+            'C': '#ffff00',
+            'D': '#ff0000'
+          };
+          
+          const polygonColor = fillColor || gradeColors[gradeValue] || '#888888';
+          const alpha = getAlphaForGrade(gradeValue);
+          entity.polygon.material = Cesium.Color.fromCssColorString(polygonColor).withAlpha(alpha);
+          entity.polygon.extrudedHeight = 25; // Restore to original height
+        }
+        
+        // Restore neighborhoods to original colors when a neighborhood is deselected
+        if (entity.properties && entity.properties.Neighborho && neighborhoodsDataSource) {
+          const entityArray = Array.from(neighborhoodsDataSource.entities.values);
+          entityArray.forEach(ngbrEntity => {
+            if (ngbrEntity.polygon) {
+              ngbrEntity.polygon.outline = true;
+              ngbrEntity.polygon.outlineColor = ngbrEntity.originalOutlineColor || Cesium.Color.WHITE.withAlpha(1.0);
+              ngbrEntity.polygon.material = ngbrEntity.originalFillColor || Cesium.Color.fromCssColorString('#808080').withAlpha(0.3);
+            }
+          });
+        }
+      }
+
+      handler.setInputAction((click) => {
+        const picked = viewer.scene.pick(click.position);
+        
+        if (Cesium.defined(picked) && picked.id && picked.id.properties) {
+          const entity = picked.id;
+          const properties = entity.properties;
+          
+          // Restore previous entity's alpha if it was faded
+          if (selectedEntity && selectedEntity !== entity) {
+            restoreEntityAlpha(selectedEntity);
+          }
+          
+          // Fade the selected entity (set alpha to 0.1) and increase extrusion - only for redlining
+          if (entity.polygon && entity.properties && entity.properties.grade) {
+            let gradeValue = entity.properties.grade;
+            if (typeof gradeValue.getValue === 'function') {
+              gradeValue = gradeValue.getValue();
+            }
+            
+            let fillColor = null;
+            if (entity.properties.fill && typeof entity.properties.fill.getValue === 'function') {
+              fillColor = entity.properties.fill.getValue();
+            }
+            
+            const gradeColors = {
+              'A': '#76a865',
+              'B': '#7cb5bd',
+              'C': '#ffff00',
+              'D': '#ff0000'
+            };
+            
+            const polygonColor = fillColor || gradeColors[gradeValue] || '#888888';
+            entity.polygon.material = Cesium.Color.fromCssColorString(polygonColor).withAlpha(0.1);
+            entity.polygon.extrudedHeight = 75; // Increase height when selected
+          }
+          
+          // Darken other neighborhoods when neighborhood is selected
+          if (entity.polygon && entity.properties && entity.properties.Neighborho && neighborhoodsDataSource) {
+            const entityArray = Array.from(neighborhoodsDataSource.entities.values);
+            entityArray.forEach(ngbrEntity => {
+              if (ngbrEntity.polygon) {
+                if (ngbrEntity === entity) {
+                  // Keep selected neighborhood with original colors
+                  ngbrEntity.polygon.outline = true;
+                  ngbrEntity.polygon.outlineColor = ngbrEntity.originalOutlineColor || Cesium.Color.WHITE.withAlpha(1.0);
+                  ngbrEntity.polygon.material = ngbrEntity.originalFillColor || Cesium.Color.fromCssColorString('#808080').withAlpha(0.3);
+                } else {
+                  // Darken non-selected neighborhoods
+                  ngbrEntity.polygon.outline = true;
+                  ngbrEntity.polygon.outlineColor = Cesium.Color.fromCssColorString('#000000').withAlpha(0.8);
+                  ngbrEntity.polygon.material = Cesium.Color.fromCssColorString('#000000').withAlpha(0.8);
+                }
+              }
+            });
+          }
+          
+          selectedEntity = entity;
+          
+          // Zoom to selected feature
+          try {
+            viewer.zoomTo(entity, new Cesium.HeadingPitchRange(0, -45, 0));
+          } catch (err) {
+            // silently handle zoom errors
+          }
+          
+          // Check if this is a redlining feature, hotspot, or neighborhood
+          let isRedlining = false;
+          let isNeighborhood = false;
+          let gradeValue = null;
+          let categoryValue = null;
+          let neighborhoodName = null;
+          let areaInAcres = null;
+          
+          if (properties.grade && typeof properties.grade.getValue === 'function') {
+            isRedlining = true;
+            gradeValue = properties.grade.getValue();
+          }
+          if (properties.category && typeof properties.category.getValue === 'function') {
+            categoryValue = properties.category.getValue();
+          }
+          if (properties.Neighborho && typeof properties.Neighborho.getValue === 'function') {
+            isNeighborhood = true;
+            neighborhoodName = properties.Neighborho.getValue();
+          }
+          
+          // Calculate area in acres for neighborhoods
+          if (isNeighborhood && properties.Shape__Are && typeof properties.Shape__Are.getValue === 'function') {
+            const areaInSquareMeters = properties.Shape__Are.getValue();
+            areaInAcres = (areaInSquareMeters / 4046.86).toFixed(2); // Convert m² to acres
+          }
+          
+          // Build popup header based on feature type
+          let headerHTML = '';
+          if (isNeighborhood) {
+            headerHTML = `
+              <div>
+                <div class="popup-title">${neighborhoodName || 'Neighborhood'}</div>
+                <div class="popup-type">Area Boundaries</div>
+              </div>
+            `;
+          } else if (isRedlining) {
+            headerHTML = `
+              <div>
+                <div class="popup-title">Grade ${gradeValue}</div>
+                <div class="popup-type">${categoryValue || 'Redlined Area'}</div>
+              </div>
+            `;
+          } else {
+            headerHTML = `
+              <div>
+                <div class="popup-title">${entity.name}</div>
+                <div class="popup-type">${properties.type ? (typeof properties.type.getValue === 'function' ? properties.type.getValue() : properties.type) : 'Hotspot'}</div>
+              </div>
+            `;
+          }
+          
+          let contentHTML = `
+            <div class="popup-header">
+              ${headerHTML}
+              <button class="close-btn" onclick="restoreSelectedEntityAlpha();">✕</button>
+            </div>
+            <div class="popup-body">
+          `;
+          
+          // Get thinglink and type values for special handling
+          let thinglink = null;
+          let typeValue = null;
+          if (properties.thinglink && typeof properties.thinglink.getValue === 'function') {
+            thinglink = properties.thinglink.getValue();
+          }
+          if (properties.type && typeof properties.type.getValue === 'function') {
+            typeValue = properties.type.getValue();
+          }
+          
+          // Properties to exclude from display
+          const excludedProperties = ['name', 'type', 'thinglink', 'grade', 'category', 'fid', 'area_id', 'fill', 'label', 'OBJECTID', 'Shape_Leng', 'SubNgbhd', 'GlobalID', 'Shape__Are', 'Shape__Len', 'Neighborho'];
+          
+          // Add properties to popup based on feature type
+          const propertyNames = properties.propertyNames;
+          
+          if (isNeighborhood) {
+            // For neighborhoods, only show area in acres
+            if (areaInAcres !== null) {
+              contentHTML += `
+                <div class="popup-row">
+                  <div class="popup-label">Area (Acre)</div>
+                  <div class="popup-value">${areaInAcres}</div>
+                </div>
+              `;
+            }
+          } else {
+            // For redlining and hotspots, show all non-excluded properties
+            for (let i = 0; i < propertyNames.length; i++) {
+              const key = propertyNames[i];
+              let value = properties[key];
+              
+              // Get value from property if it has getValue method
+              if (value && typeof value.getValue === 'function') {
+                value = value.getValue();
+              }
+              
+              // Skip null, undefined, and excluded properties
+              if (value !== null && value !== undefined && !excludedProperties.includes(key)) {
+                contentHTML += `
+                  <div class="popup-row">
+                    <div class="popup-label">${key}</div>
+                    <div class="popup-value">${value}</div>
+                  </div>
+                `;
+              }
+            }
+          }
+          
+          // Add thinglink as a button-like link if it exists (hotspots only)
+          if (thinglink && !isNeighborhood && !isRedlining) {
+            let linkText = 'View';
+            if (typeValue && typeValue.toLowerCase().includes('guided')) {
+              linkText = 'Visit';
+            }
+            contentHTML += `
+              <div class="popup-row" style="padding: 12px 0; border-top: 1px solid rgba(79, 195, 247, 0.3);">
+                <a href="${thinglink}" target="_blank" style="color: #4fc3f7; text-decoration: none; font-weight: 600; padding: 8px 12px; background: rgba(79, 195, 247, 0.1); border: 1px solid rgba(79, 195, 247, 0.3); border-radius: 4px; display: inline-block; transition: all 0.2s; width: 100%; text-align: center;">${linkText} →</a>
+              </div>
+            `;
+          }
+          
+          contentHTML += `</div>`;
+          
+          // Show sidebar popup
+          popup.innerHTML = contentHTML;
+          popup.style.display = 'block';
+        } else {
+          // Hide popup if clicking on empty space
+          if (selectedEntity) {
+            restoreEntityAlpha(selectedEntity);
+            selectedEntity = null;
+          }
+          popup.style.display = 'none';
+        }
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+      // Hide popup on right click and restore entity alpha
+      handler.setInputAction(() => {
+        if (selectedEntity) {
+          restoreEntityAlpha(selectedEntity);
+          selectedEntity = null;
+        }
+        popup.style.display = 'none';
+      }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+    }
+
+    /**
+     * Restore selected entity alpha and extrusion when closing popup manually
+     */
+    function restoreSelectedEntityAlpha() {
+      const popup = document.getElementById('popup');
+      
+      if (selectedEntity && selectedEntity.polygon) {
+        // Restore redlining features
+        if (selectedEntity.properties && selectedEntity.properties.grade) {
+          let gradeValue = selectedEntity.properties.grade;
+          if (typeof gradeValue.getValue === 'function') {
+            gradeValue = gradeValue.getValue();
+          }
+          
+          let fillColor = null;
+          if (selectedEntity.properties.fill && typeof selectedEntity.properties.fill.getValue === 'function') {
+            fillColor = selectedEntity.properties.fill.getValue();
+          }
+          
+          const gradeColors = {
+            'A': '#76a865',
+            'B': '#7cb5bd',
+            'C': '#ffff00',
+            'D': '#ff0000'
+          };
+          
+          const polygonColor = fillColor || gradeColors[gradeValue] || '#888888';
+          const alpha = (gradeValue && ['A', 'B', 'C', 'D'].includes(gradeValue)) ? 0.4 : 0.1;
+          selectedEntity.polygon.material = Cesium.Color.fromCssColorString(polygonColor).withAlpha(alpha);
+          selectedEntity.polygon.extrudedHeight = 25; // Restore to original height
+        }
+        
+        // Restore neighborhoods to original colors
+        if (selectedEntity.properties && selectedEntity.properties.Neighborho && neighborhoodsDataSource) {
+          const entityArray = Array.from(neighborhoodsDataSource.entities.values);
+          entityArray.forEach(ngbrEntity => {
+            if (ngbrEntity.polygon) {
+              ngbrEntity.polygon.outline = true;
+              ngbrEntity.polygon.outlineColor = ngbrEntity.originalOutlineColor || Cesium.Color.WHITE.withAlpha(1.0);
+              ngbrEntity.polygon.material = ngbrEntity.originalFillColor || Cesium.Color.fromCssColorString('#808080').withAlpha(0.3);
+            }
+          });
+        }
+      }
+      
+      selectedEntity = null;
+      popup.style.display = 'none';
+    }
+
+    /**
+     * Show content box with title, text, and optional video
+     * @param {string} title - Title of the content box
+     * @param {string} text - Text content to display
+     * @param {string} videoUrl - Optional YouTube/Vimeo embed URL or iframe HTML
+     */
+    function showContentBox(title, text, videoUrl = null) {
+      const contentBox = document.getElementById('contentBox');
+      const contentTitle = contentBox.querySelector('.content-title');
+      const contentText = document.getElementById('contentText');
+      const contentVideoContainer = document.getElementById('contentVideoContainer');
+      
+      // Update title and text
+      contentTitle.textContent = title;
+      contentText.textContent = text;
+      
+      // Handle video embed
+      if (videoUrl) {
+        contentVideoContainer.innerHTML = '';
+        
+        // If it's a URL, create an iframe
+        if (videoUrl.startsWith('http')) {
+          // Handle YouTube URLs
+          if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+            let videoId = '';
+            if (videoUrl.includes('youtube.com/watch')) {
+              videoId = new URL(videoUrl).searchParams.get('v');
+            } else if (videoUrl.includes('youtu.be/')) {
+              videoId = videoUrl.split('youtu.be/')[1].split('?')[0];
+            }
+            if (videoId) {
+              videoUrl = `https://www.youtube.com/embed/${videoId}`;
+            }
+          }
+          
+          const iframe = document.createElement('iframe');
+          iframe.src = videoUrl;
+          iframe.allowFullscreen = true;
+          iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+          contentVideoContainer.appendChild(iframe);
+        } else {
+          // If it's HTML, insert directly
+          contentVideoContainer.innerHTML = videoUrl;
+        }
+        
+        contentVideoContainer.style.display = 'block';
+      } else {
+        contentVideoContainer.style.display = 'none';
+      }
+      
+      // Show the content box
+      contentBox.classList.add('active');
+    }
+
+    /**
+     * Minimize the content box (collapse to header only)
+     */
+    function minimizeContentBox() {
+      const contentBox = document.getElementById('contentBox');
+      contentBox.classList.add('minimized');
+    }
+
+    /**
+     * Expand the content box (show full content)
+     */
+    function expandContentBox() {
+      const contentBox = document.getElementById('contentBox');
+      contentBox.classList.remove('minimized');
+    }
+
+    /**
+     * Close the content box completely (hide it)
+     */
+    function closeContentBox() {
+      const contentBox = document.getElementById('contentBox');
+      contentBox.classList.remove('active');
+    }
+
+    /**
+     * Toggle Hotspots layer visibility
+     */
+    document.getElementById('toggleHotspots').addEventListener('change', e => {
+      if (hotspotsDataSource) {
+        hotspotsDataSource.show = e.target.checked;
+      }
+    });
+
+    /**
+     * Toggle 360° Image visibility
+     */
+    document.getElementById('toggle360').addEventListener('change', e => {
+      if (hotspotsDataSource) {
+        const entityArray = Array.from(hotspotsDataSource.entities.values);
+        entityArray.forEach(entity => {
+          if (entity.properties && entity.properties.type) {
+            let typeValue = entity.properties.type;
+            if (typeof typeValue.getValue === 'function') {
+              typeValue = typeValue.getValue();
+            }
+            if (typeValue === '360° Image') {
+              entity.show = e.target.checked;
+            }
+          }
+        });
+      }
+    });
+
+    /**
+     * Toggle Guided Tour visibility
+     */
+    document.getElementById('toggleGuidedTour').addEventListener('change', e => {
+      if (hotspotsDataSource) {
+        const entityArray = Array.from(hotspotsDataSource.entities.values);
+        entityArray.forEach(entity => {
+          if (entity.properties && entity.properties.type) {
+            let typeValue = entity.properties.type;
+            if (typeof typeValue.getValue === 'function') {
+              typeValue = typeValue.getValue();
+            }
+            if (typeValue && typeValue.toLowerCase().includes('guided')) {
+              entity.show = e.target.checked;
+            }
+          }
+        });
+      }
+    });
+
+    /**
+     * Toggle Google 3D Tiles layer visibility
+     */
+    document.getElementById('toggleGoogle3D').addEventListener('change', e => {
+      if (tileset) {
+        tileset.show = e.target.checked;
+      }
+    });
+
+    /**
+     * Toggle Redlining layer visibility
+     */
+    document.getElementById('toggleRedlining').addEventListener('change', e => {
+      if (redliningDataSource) {
+        redliningDataSource.show = e.target.checked;
+      }
+    });
+
+    /**
+     * Toggle Grade visibility (A, B, C, D, Other)
+     */
+    ['A', 'B', 'C', 'D', 'Other'].forEach(grade => {
+      const elementId = grade === 'Other' ? 'toggleOther' : `toggleGrade${grade}`;
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.addEventListener('change', createGradeToggleHandler(grade));
+      }
+    });
+
+    /**
+     * Toggle Neighborhoods layer visibility
+     */
+    document.getElementById('toggleNeighborhoods').addEventListener('change', e => {
+      if (neighborhoodsDataSource) {
+        neighborhoodsDataSource.show = e.target.checked;
+      }
+      if (neighborhoodsOutlineDataSource) {
+        neighborhoodsOutlineDataSource.show = e.target.checked;
+      }
+    });
+  </script>
+  </body>
+</html>

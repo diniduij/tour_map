@@ -1,0 +1,23 @@
+{
+  "name": "trenton-3d-tour-map",
+  "version": "1.0.0",
+  "description": "Interactive CesiumJS map displaying Google 3D Photorealistic Tiles over Trenton, NJ",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000"
+  },
+  "keywords": [
+    "cesiumjs",
+    "3d-maps",
+    "google-tiles",
+    "trenton",
+    "geospatial"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "dependencies": {}
+}
