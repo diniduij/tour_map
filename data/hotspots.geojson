@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "hotspots",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "51 N Clinton Ave", "type": "360° Image", "thinglink": "https://www.thinglink.com/view/scene/2079215040648446629", "city": "Trenton", "state": "NJ" }, "geometry": { "type": "Point", "coordinates": [ -74.755261673058996, 40.222385452456294 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "48 Wall St", "type": "Guided Tour", "thinglink": "https://www.thinglink.com/view/scene/2076180031297553252", "city": "Trenton", "state": "NJ" }, "geometry": { "type": "Point", "coordinates": [ -74.752874539731977, 40.222580645892435 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "29 Eastburn", "type": "360° Image", "thinglink": "https://www.thinglink.com/view/scene/2079213730373042853null", "city": "Trenton", "state": "NJ" }, "geometry": { "type": "Point", "coordinates": [ -74.747733112805221, 40.231467560306662 ] } }
+]
+}
