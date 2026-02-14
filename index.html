@@ -770,6 +770,16 @@
 
         // Setup click handler for popups
         setupClickHandler();
+
+        // Setup hover preview for all layers (after data sources are loaded)
+        setTimeout(() => {
+          addLayerHoverPreview('toggleHotspots', hotspotsDataSource);
+          addLayerHoverPreview('toggle360', hotspotsDataSource);
+          addLayerHoverPreview('toggleGuidedTour', hotspotsDataSource);
+          addLayerHoverPreview('toggleGoogle3D', tileset);
+          addLayerHoverPreview('toggleRedlining', redliningDataSource);
+          addLayerHoverPreview('toggleNeighborhoods', neighborhoodsDataSource, neighborhoodsOutlineDataSource);
+        }, 100);
       })
       .catch(error => {
         console.error('Error initializing viewer:', error);
@@ -1168,6 +1178,51 @@
     }
 
     /**
+     * Helper: Add hover preview functionality to layer controls
+     */
+    function addLayerHoverPreview(elementId, ...dataSources) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+      
+      const container = element.closest('label') || element.closest('div');
+      if (!container) return;
+      
+      const originalStates = {};
+      let isPreviewActive = false;
+      
+      // Only apply preview on mouseenter, not on checkbox interaction
+      container.addEventListener('mouseenter', () => {
+        // Don't preview if checkbox is already in desired state
+        if (element.checked) return;
+        
+        isPreviewActive = true;
+        dataSources.forEach((ds, index) => {
+          if (ds) {
+            originalStates[index] = ds.show;
+            ds.show = true; // Preview by temporarily showing
+          }
+        });
+      });
+      
+      container.addEventListener('mouseleave', () => {
+        if (!isPreviewActive) return;
+        
+        isPreviewActive = false;
+        // Only restore if checkbox state hasn't been intentionally changed
+        dataSources.forEach((ds, index) => {
+          if (ds && originalStates.hasOwnProperty(index)) {
+            ds.show = originalStates[index];
+          }
+        });
+      });
+      
+      // When user clicks checkbox, update the preview state
+      element.addEventListener('change', (e) => {
+        isPreviewActive = false; // Disable preview after user action
+      });
+    }
+
+    /**
      * Toggle Hotspots layer visibility
      */
     document.getElementById('toggleHotspots').addEventListener('change', e => {
@@ -1256,6 +1311,7 @@
         neighborhoodsOutlineDataSource.show = e.target.checked;
       }
     });
+
   </script>
   </body>
 </html>
