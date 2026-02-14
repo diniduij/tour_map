@@ -1,0 +1,19 @@
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build & Temp
+node_modules/
+dist/
+*.log
+*.tmp
+
+# Environment
+.env
+.env.local
