@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "hotspots_pg",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1, "name": "Racism at the State House", "type": "360° Image", "link": "https://www.thinglink.com/view/scene/2079819146022879909", "time_period": "Late Modern Period", "theme": "Theme", "extru_ele_m": 25 }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -74.769897, 40.219631 ], [ -74.770816189620987, 40.219916835795892 ], [ -74.770371392010702, 40.220972560244398 ], [ -74.769444, 40.220683 ], [ -74.769897, 40.219631 ] ] ] } },
+{ "type": "Feature", "properties": { "fid": 2, "name": "Labor Discrimination", "type": "Tour", "link": "https://www.thinglink.com/view/scene/2079215040648446629", "time_period": "Late Modern Period", "theme": "Theme", "extru_ele_m": 50 }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -74.768456823582852, 40.22072304194176 ], [ -74.768386753951759, 40.220702471040887 ], [ -74.768319562070502, 40.220875428236134 ], [ -74.768386111111113, 40.220897251758522 ], [ -74.768456823582852, 40.22072304194176 ] ] ] } },
+{ "type": "Feature", "properties": { "fid": 3, "name": "First Nations and Indigenous Removal", "type": "360° Image", "link": "https://www.thinglink.com/view/scene/2079215040648446629", "time_period": "Early Modern Period", "theme": "Indigenous Occupation and Governance", "extru_ele_m": 75 }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -74.758428812724674, 40.198307697620507 ], [ -74.758182298386444, 40.198307697620507 ], [ -74.758182298386444, 40.198071901296977 ], [ -74.7584368512357, 40.198074580800657 ], [ -74.758428812724674, 40.198307697620507 ] ] ] } }
+]
+}
